@@ -1,65 +1,114 @@
-import Image from "next/image";
+// src/app/page.jsx
+"use client";
 
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+import { useState, useEffect, useRef } from "react";
+import Header from "@/components/Header";
+import Timer from "@/components/Timer";
+import Tasks from "@/components/Tasks";
+import SettingsModal from "@/components/SettingsModal";
+import ReportModal from "@/components/ReportModal";
+
+const LONG_BREAK_INTERVAL = 4;
+
+const convertTimeToSeconds = (timeObject) => {
+    const { h = 0, m = 0, s = 0 } = timeObject;
+    return (h * 3600) + (m * 60) + s;
+};
+
+const getInitialState = (key, defaultValue) => {
+    if (typeof window === 'undefined') return defaultValue;
+    try {
+        const item = window.localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+        console.warn(`Error reading localStorage key '${key}':`, error);
+        return defaultValue;
+    }
+};
+
+
+export default function HomePage() {
+    const [durations, setDurations] = useState(() => getInitialState('pomofocus-durations', {
+        pomodoro: { h: 0, m: 25, s: 0 },
+        shortBreak: { h: 0, m: 5, s: 0 },
+        longBreak: { h: 0, m: 15, s: 0 },
+    }));
+    const [tasks, setTasks] = useState(() => getInitialState('pomofocus-tasks', []));
+    const [history, setHistory] = useState(() => getInitialState('pomofocus-history', []));
+    const [pomodoroCount, setPomodoroCount] = useState(() => getInitialState('pomofocus-pomodoroCount', 0));
+
+    const [mode, setMode] = useState('pomodoro');
+    const [timeLeft, setTimeLeft] = useState(convertTimeToSeconds(durations.pomodoro));
+    const [isActive, setIsActive] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isReportOpen, setIsReportOpen] = useState(false);
+    const [isRinging, setIsRinging] = useState(false);
+
+    const audioRef = useRef(null);
+
+    useEffect(() => { localStorage.setItem('pomofocus-durations', JSON.stringify(durations)); }, [durations]);
+    useEffect(() => { localStorage.setItem('pomofocus-tasks', JSON.stringify(tasks)); }, [tasks]);
+    useEffect(() => { localStorage.setItem('pomofocus-history', JSON.stringify(history)); }, [history]);
+    useEffect(() => { localStorage.setItem('pomofocus-pomodoroCount', JSON.stringify(pomodoroCount)); }, [pomodoroCount]);
+
+    const playSound = () => { if (audioRef.current) { audioRef.current.play(); setIsRinging(true); } };
+    const stopSound = () => { if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; } setIsRinging(false); };
+
+    useEffect(() => { if (!isActive) setTimeLeft(convertTimeToSeconds(durations[mode])); }, [durations, mode]);
+
+    useEffect(() => {
+        let interval = null;
+        if (isActive && timeLeft > 0) {
+            interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        } else if (timeLeft === 0) {
+            playSound();
+            setIsActive(false);
+            if (mode === 'pomodoro') {
+                const newPomodoroCount = pomodoroCount + 1;
+                setPomodoroCount(newPomodoroCount);
+                const newCompletion = { id: Date.now(), date: new Date().toISOString().split('T')[0] };
+                setHistory(prevHistory => [...prevHistory, newCompletion]);
+                changeMode(newPomodoroCount % LONG_BREAK_INTERVAL === 0 ? 'longBreak' : 'shortBreak');
+            } else {
+                changeMode('pomodoro');
+            }
+        }
+        return () => clearInterval(interval);
+    }, [isActive, timeLeft, mode, pomodoroCount]);
+
+    useEffect(() => {
+        const totalSeconds = timeLeft;
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        let timeString = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        if (hours > 0) timeString = `${hours < 10 ? '0' : ''}${hours}:` + timeString;
+        document.title = `${timeString} - Time to focus!`;
+    }, [timeLeft]);
+
+    const toggleTimer = () => setIsActive(!isActive);
+
+    const changeMode = (newMode) => {
+        stopSound();
+        setMode(newMode);
+        setIsActive(false);
+        setTimeLeft(convertTimeToSeconds(durations[newMode]));
+    };
+
+    const handleSaveSettings = (newSettings) => setDurations(newSettings);
+
+    return (
+        <div className="flex flex-col items-center min-h-screen px-4">
+            <Header onSettingsClick={() => setIsSettingsOpen(true)} onReportClick={() => setIsReportOpen(true)} />
+            <main className="w-full flex-grow flex flex-col items-center justify-center -mt-16">
+                <Timer timeLeft={timeLeft} mode={mode} setMode={changeMode} toggleTimer={toggleTimer} isActive={isActive} isRinging={isRinging} stopSound={stopSound} />
+                <Tasks tasks={tasks} setTasks={setTasks} />
+            </main>
+
+            <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} settings={durations} onSave={handleSaveSettings} />
+            <ReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} history={history} pomodoroDuration={durations.pomodoro} />
+
+            <audio ref={audioRef} src="/bell-finish.mp3" onEnded={stopSound} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+    );
 }
