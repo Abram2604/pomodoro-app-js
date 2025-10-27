@@ -59,23 +59,20 @@ export default function HomePage() {
   useEffect(() => {
     let interval = null;
     if (isActive && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     } else if (timeLeft === 0) {
-      playSound();
-      setIsActive(false);
-      if (mode === 'pomodoro') {
-        const newPomodoroCount = pomodoroCount + 1;
-        setPomodoroCount(newPomodoroCount);
-        const newCompletion = { id: Date.now(), date: new Date().toISOString().split('T')[0] };
-        setHistory(prevHistory => [...prevHistory, newCompletion]);
-        changeMode(newPomodoroCount % LONG_BREAK_INTERVAL === 0 ? 'longBreak' : 'shortBreak');
-      } else {
-        changeMode('pomodoro');
-      }
+        playSound();
+        setIsActive(false);
+        if (mode === 'pomodoro') {
+            const newPomodoroCount = pomodoroCount + 1;
+            setPomodoroCount(newPomodoroCount);
+            const newCompletion = { id: Date.now(), date: new Date().toISOString().split('T')[0] };
+            setHistory(prevHistory => [...prevHistory, newCompletion]);
+        }
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, mode, pomodoroCount]);
-
+  }, [isActive, timeLeft]);
+    
   useEffect(() => {
     const totalSeconds = timeLeft;
     const hours = Math.floor(totalSeconds / 3600);
@@ -102,20 +99,27 @@ export default function HomePage() {
     setTimeLeft(convertTimeToSeconds(durations[newMode]));
   };
 
-  const handleSaveSettings = (newSettings) => setDurations(newSettings);
+   const handleSaveSettings = (newSettings) => setDurations(newSettings);
+
+  const handleAlarmAcknowledge = () => {
+    stopSound();
+    if (mode === 'pomodoro') {
+      changeMode(pomodoroCount % LONG_BREAK_INTERVAL === 0 ? 'longBreak' : 'shortBreak');
+    } else {
+      changeMode('pomodoro');
+    }
+  };
 
   return (
     <div className="flex flex-col items-center min-h-screen px-4">
-      <Header onSettingsClick={() => setIsSettingsOpen(true)} onReportClick={() => setIsReportOpen(true)} playSound={playSound} />
+      <Header onSettingsClick={() => setIsSettingsOpen(true)} onReportClick={() => setIsReportOpen(true)} />
       <main className="w-full flex-grow flex flex-col items-center justify-center -mt-16">
-        <Timer timeLeft={timeLeft} mode={mode} setMode={changeMode} toggleTimer={toggleTimer} isActive={isActive} isRinging={isRinging} stopSound={stopSound} />
+        <Timer timeLeft={timeLeft} mode={mode} setMode={changeMode} toggleTimer={toggleTimer} isActive={isActive} isRinging={isRinging} stopSound={handleAlarmAcknowledge} />
         <Tasks tasks={tasks} setTasks={setTasks} />
-      </main>
-      
+      </main>     
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} settings={durations} onSave={handleSaveSettings} />
       <ReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} history={history} pomodoroDuration={durations.pomodoro} />
-      
-      <audio ref={audioRef} src="/bell-finish.mp3" onEnded={stopSound} />
+      <audio ref={audioRef} src="/bell-finish.mp3" onEnded={handleAlarmAcknowledge} />
     </div>
   );
 }
