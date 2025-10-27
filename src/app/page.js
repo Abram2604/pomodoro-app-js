@@ -107,7 +107,7 @@ export default function HomePage() {
 
     return (
         <div className="flex flex-col items-center min-h-screen px-4">
-            <Header onSettingsClick={() => setIsSettingsOpen(true)} onReportClick={() => setIsReportOpen(true)} />
+            <Header onSettingsClick={() => setIsSettingsOpen(true)} onReportClick={() => setIsReportOpen(true)}  playSound={playSound} />
             <main className="w-full flex-grow flex flex-col items-center justify-center -mt-16">
                 <Timer timeLeft={timeLeft} mode={mode} setMode={changeMode} toggleTimer={toggleTimer} isActive={isActive} isRinging={isRinging} stopSound={stopSound} />
                 <Tasks tasks={tasks} setTasks={setTasks} />
