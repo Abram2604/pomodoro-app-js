@@ -12,7 +12,12 @@ export default function Header({ onSettingsClick, onReportClick }) {
                 <h1 className="text-white text-xl font-bold">Pomofocus</h1>
             </div>
             <nav className="flex items-center gap-2">
-
+                 <button 
+          onClick={playSound}
+          className="flex items-center gap-2 bg-white/10 p-2 rounded-md text-sm hover:bg-white/20"
+        >
+          <FiVolume2 /> Test Audio
+        </button>
                 <button
                     onClick={onReportClick}
                     className="flex items-center gap-2 bg-white/10 p-2 rounded-md text-sm hover:bg-white/20"
