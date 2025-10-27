@@ -37,17 +37,15 @@ export default function Timer({ mode, setMode, timeLeft, toggleTimer, isActive, 
 
       <div className="relative text-7xl sm:text-8xl md:text-9xl font-bold mb-6">
         {isRinging ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-            <button
-              onClick={stopSound}
-              className="bg-white text-[#BA4949] text-2xl font-bold py-3 px-20 rounded-md shadow-lg transform hover:scale-105 transition-transform"
-            >
-              STOP
-            </button>
-          </div>
-        ) : (
-          formatTime(timeLeft)
-        )}
+    <button
+      onClick={stopSound}
+      className="bg-white text-[#BA4949] text-2xl font-bold py-3 px-16 rounded-md shadow-lg transform hover:scale-105 transition-transform"
+    >
+      STOP
+    </button>
+) : (
+  formatTime(timeLeft)
+)}
       </div>
 
       {!isRinging && (
