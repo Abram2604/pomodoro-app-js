@@ -45,6 +45,7 @@ export default function HomePage() {
     const [isRinging, setIsRinging] = useState(false);
 
     const audioRef = useRef(null);
+    const hasInteracted = useRef(false);
 
     useEffect(() => { localStorage.setItem('pomofocus-durations', JSON.stringify(durations)); }, [durations]);
     useEffect(() => { localStorage.setItem('pomofocus-tasks', JSON.stringify(tasks)); }, [tasks]);
@@ -86,7 +87,14 @@ export default function HomePage() {
         document.title = `${timeString} - Time to focus!`;
     }, [timeLeft]);
 
-    const toggleTimer = () => setIsActive(!isActive);
+    const toggleTimer = () => {
+    if (!hasInteracted.current && !isActive) {
+        audioRef.current.play();
+        audioRef.current.pause();
+        hasInteracted.current = true; 
+    }
+    setIsActive(!isActive);
+};
 
     const changeMode = (newMode) => {
         stopSound();
