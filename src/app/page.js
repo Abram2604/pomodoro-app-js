@@ -108,7 +108,7 @@ export default function HomePage() {
             <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} settings={durations} onSave={handleSaveSettings} />
             <ReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} history={history} pomodoroDuration={durations.pomodoro} />
 
-            {/* <audio ref={audioRef} src="/bell-finish.mp3" onEnded={stopSound} /> */}
+            <audio ref={audioRef} src="/bell-finish.mp3" onEnded={stopSound} />
         </div>
     );
 }
